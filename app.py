@@ -98,14 +98,13 @@ def line():
     #     abort(400)
 
     events = payload.get("events")[0]
-    log(events)
 
     # send back to Line
     # line_bot_api.reply_message(events.get("replyToken"), TextSendMessage(text=events.get("message").get("text")))
 
     # data for qismo
     data = json.dumps({
-        "replyToken": events.get("replyToken"),
+        "to": [events.get("source").get("userId")],
         "messages": [
             {
                 "type": events.get("message").get("type"),
