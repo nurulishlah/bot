@@ -87,8 +87,8 @@ def line():
     log(payload)
 
     # get request body as text
-    body = request.get_data(as_text=True)
-    app.logger.info("Request body: " + body)
+    # body = request.get_data(as_text=True)
+    # app.logger.info("Request body: " + body)
 
     # handle webhook body
     try:
@@ -151,6 +151,10 @@ def handle_message(event):
 def send_to_qismo(payload, channel=None, qiscus_app_id=APP_ID):
     base_url = "http://qismo-stag.herokuapp.com"
 
+    headers = {
+        "Content-Type": "application/json"
+    }
+
     if channel == "fb":
         url = "{}/{}/fb/bot".format(base_url, qiscus_app_id)
 
@@ -164,8 +168,8 @@ def send_to_qismo(payload, channel=None, qiscus_app_id=APP_ID):
     log(payload)
 
     # TODO: add params and headers
-    r = requests.post(url, data=json.dumps(payload))
-    rb = requests.post('https://requestb.in/1e63rom1', data=json.dumps(payload))
+    r = requests.post(url, headers=headers, data=json.dumps(payload))
+    rb = requests.post('https://requestb.in/1e63rom1', headers=headers, data=json.dumps(payload))
 
     if r.status_code != 200:
         log(r.status_code)
