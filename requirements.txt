@@ -6,3 +6,4 @@ Jinja2==2.8
 MarkupSafe==0.23
 requests==2.12.3
 Werkzeug==0.11.11
+line-bot-sdk
