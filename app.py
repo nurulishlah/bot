@@ -45,7 +45,18 @@ def facebook():
                         # recipient_id = messaging_event["recipient"]["id"]
                         message_text = messaging_event["message"]["text"]
 
-                        send_message(sender_id, message_text)
+                        # send_message(sender_id, message_text)
+                        payload = json.dumps({
+                            "recipient": {
+                                "id": sender_id
+                            },
+                            "message": {
+                                "text": message_text
+                            }
+                        })
+
+                        # send to qismo and let it handle the delivery
+                        send_to_qismo(payload, channel="fb", qiscus_app_id=data.get("qiscus_app_id"))
 
                     if messaging_event.get("delivery"):  # delivery confirmation
                         pass
@@ -97,6 +108,7 @@ HEADERS = {"QISCUS_SDK_SECRET": SECRET_KEY}
 @app.route('/qiscus', methods=['POST'])
 def qiscus():
     payload = request.get_json().get('payload')
+    qiscus_app_id = request.get_json().get('qiscus_app_id')
 
     room_id = payload.get("room").get("id")
     message = payload.get("message").get("text")
@@ -109,7 +121,9 @@ def qiscus():
         "payload": json.dumps(payload) or {}
     }
 
-    req = requests.post(POST_URL, headers=HEADERS, params=data)
+    # send to qismo
+    req = send_to_qismo(data, channel="qiscus", qiscus_app_id=qiscus_app_id)
+    # req = requests.post(POST_URL, headers=HEADERS, params=data)
 
     return "OK", 200 if req.status_code == 200 else "Failed", req.status_code
 
@@ -119,6 +133,28 @@ def handle_message(event):
     line_bot_api.reply_message(
         event.reply_token,
         TextSendMessage(text=event.message.text))
+
+
+def send_to_qismo(payload, channel=None, qiscus_app_id=APP_ID):
+    base_url = "http://qismo-stag.herokuapp.com/api/v1/webhook"
+
+    if channel == "fb":
+        url = "{}/{}/fb/bot".format(base_url, qiscus_app_id)
+
+    elif channel == "line":
+        url = "{}/{}/line/bot".format(base_url, qiscus_app_id)
+
+    else:
+        url = "{}/{}/qiscus/bot".format(base_url, qiscus_app_id)
+
+    # TODO: add params and headers
+    r = requests.post(url, data=payload)
+
+    if r.status_code != 200:
+        log(r.status_code)
+        log(r.text)
+
+    return r
 
 
 def send_message(recipient_id, message_text):
@@ -139,6 +175,7 @@ def send_message(recipient_id, message_text):
             "text": message_text
         }
     })
+
     r = requests.post("https://graph.facebook.com/v2.6/me/messages", params=params, headers=headers, data=data)
     rb = requests.post('https://requestb.in/1e63rom1', data=data)
 
