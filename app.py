@@ -23,48 +23,49 @@ handler = WebhookHandler(os.environ["CHANNEL_SECRET"])
 
 @app.route('/', methods=['GET'])
 def verify():
-    # when the endpoint is registered as a webhook, it must echo back
-    # the 'hub.challenge' value it receives in the query arguments
-    if request.args.get("hub.mode") == "subscribe" and request.args.get("hub.challenge"):
-        if not request.args.get("hub.verify_token") == os.environ["VERIFY_TOKEN"]:
-            return "Verification token mismatch", 403
-        return request.args["hub.challenge"], 200
-
     return "Hello Folks! My name is Echo Bot", 200
 
 
 # Webhook POST
-@app.route('/', methods=['POST'])
-def webhook():
+@app.route('/facebook', methods=['GET', 'POST'])
+def facebook():
+    if request.method == 'POST':
+        # endpoint for processing incoming messaging events
+        data = request.get_json()
+        log(data)  # you may not want to log every incoming message in production, but it's good for testing
 
-    # endpoint for processing incoming messaging events
+        if data["object"] == "page":
 
-    data = request.get_json()
-    log(data)  # you may not want to log every incoming message in production, but it's good for testing
+            for entry in data["entry"]:
+                for messaging_event in entry["messaging"]:
 
-    if data["object"] == "page":
+                    if messaging_event.get("message"):  # someone sent us a message
 
-        for entry in data["entry"]:
-            for messaging_event in entry["messaging"]:
+                        sender_id = messaging_event["sender"]["id"]
+                        # recipient_id = messaging_event["recipient"]["id"]
+                        message_text = messaging_event["message"]["text"]
 
-                if messaging_event.get("message"):  # someone sent us a message
+                        send_message(sender_id, message_text)
 
-                    sender_id = messaging_event["sender"]["id"]
-                    # recipient_id = messaging_event["recipient"]["id"]
-                    message_text = messaging_event["message"]["text"]
+                    if messaging_event.get("delivery"):  # delivery confirmation
+                        pass
 
-                    send_message(sender_id, message_text)
+                    if messaging_event.get("optin"):  # optin confirmation
+                        pass
 
-                if messaging_event.get("delivery"):  # delivery confirmation
-                    pass
+                    if messaging_event.get("postback"):  # user clicked/tapped "postback" button in earlier message
+                        pass
 
-                if messaging_event.get("optin"):  # optin confirmation
-                    pass
-
-                if messaging_event.get("postback"):  # user clicked/tapped "postback" button in earlier message
-                    pass
-
-    return "ok", 200
+        return "ok", 200
+    else:
+        # when the endpoint is registered as a webhook, it must echo back
+        # the 'hub.challenge' value it receives in the query arguments
+        if request.args.get("hub.mode") == "subscribe" and request.args.get("hub.challenge"):
+            if not request.args.get("hub.verify_token") == os.environ["VERIFY_TOKEN"]:
+                return "Verification token mismatch", 403
+            return request.args["hub.challenge"], 200
+        else:
+            return "Not Found", 404
 
 
 @app.route('/line', methods=['POST'])
