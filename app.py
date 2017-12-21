@@ -82,7 +82,9 @@ def facebook():
 @app.route('/line', methods=['POST'])
 def line():
     # get X-Line-Signature header value
-    signature = request.headers['X-Line-Signature']
+    # signature = request.headers['X-Line-Signature']
+    payload = request.get_json()
+    log(payload)
 
     # get request body as text
     body = request.get_data(as_text=True)
@@ -146,6 +148,9 @@ def send_to_qismo(payload, channel=None, qiscus_app_id=APP_ID):
 
     else:
         url = "{}/{}/qiscus/bot".format(base_url, qiscus_app_id)
+
+    log(url)
+    log(payload)
 
     # TODO: add params and headers
     r = requests.post(url, data=payload)
