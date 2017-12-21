@@ -104,7 +104,7 @@ def line():
 
     # data for qismo
     data = json.dumps({
-        "to": [events.get("source").get("userId")],
+        "to": events.get("source").get("userId"),
         "messages": [
             {
                 "type": events.get("message").get("type"),
