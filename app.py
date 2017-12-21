@@ -49,9 +49,9 @@ def webhook():
 
                 if messaging_event.get("message"):  # someone sent us a message
 
-                    sender_id = messaging_event["sender"]["id"]        # the facebook ID of the person sending you the message
-                    recipient_id = messaging_event["recipient"]["id"]  # the recipient's ID, which should be your page's facebook ID
-                    message_text = messaging_event["message"]["text"]  # the message's text
+                    sender_id = messaging_event["sender"]["id"]
+                    # recipient_id = messaging_event["recipient"]["id"]
+                    message_text = messaging_event["message"]["text"]
 
                     send_message(sender_id, message_text)
 
@@ -83,6 +83,34 @@ def line():
         abort(400)
 
     return 'OK'
+
+
+APP_ID = os.environ.get("APP_ID")
+SECRET_KEY = os.environ.get("SECRET_KEY")
+BOT_EMAIL = os.environ.get("BOT_EMAIL")
+QISCUS_SDK_URL = os.environ.get("QISCUS_SDK_URL")
+POST_URL = "{}/api/v2/rest/post_comment".format(QISCUS_SDK_URL)
+HEADERS = {"QISCUS_SDK_SECRET": SECRET_KEY}
+
+
+@app.route('/qiscus', methods=['POST'])
+def qiscus():
+    payload = request.get_json().get('payload')
+
+    room_id = payload.get("room").get("id")
+    message = payload.get("message").get("text")
+
+    data = {
+        "sender_email": BOT_EMAIL,
+        "room_id": room_id,
+        "message": message,
+        "type": "text",
+        "payload": json.dumps(payload) or {}
+    }
+
+    req = requests.post(POST_URL, headers=HEADERS, params=data)
+
+    return "OK", 200 if req.status_code == 200 else "Failed", req.status_code
 
 
 @handler.add(MessageEvent, message=TextMessage)
@@ -117,11 +145,14 @@ def send_message(recipient_id, message_text):
         log(r.status_code)
         log(r.text)
 
+    if rb.status_code != 200:
+        log(rb.status_code)
+        log(rb.text)
+
 
 def log(message):  # simple wrapper for logging to stdout on heroku
-    print (str(message))
+    print(str(message))
     sys.stdout.flush()
-
 
 
 if __name__ == '__main__':
