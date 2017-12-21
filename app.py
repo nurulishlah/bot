@@ -8,7 +8,7 @@ from linebot import (
     LineBotApi, WebhookHandler
 )
 from linebot.exceptions import (
-    InvalidSignatureError
+    InvalidSignatureError, LineBotApiError
 )
 from linebot.models import (
     MessageEvent, TextMessage, TextSendMessage,
@@ -16,9 +16,6 @@ from linebot.models import (
 
 
 app = Flask(__name__)
-
-line_bot_api = LineBotApi(os.environ["CHANNEL_ACCESS_TOKEN"])
-handler = WebhookHandler(os.environ["CHANNEL_SECRET"])
 
 
 @app.route('/', methods=['GET'])
@@ -79,21 +76,34 @@ def facebook():
             return "Not Found", 404
 
 
+line_bot_api = LineBotApi(os.environ["CHANNEL_ACCESS_TOKEN"])
+handler = WebhookHandler(os.environ["CHANNEL_SECRET"])
+
+
 @app.route('/line', methods=['POST'])
 def line():
     # get X-Line-Signature header value
-    # signature = request.headers['X-Line-Signature']
+    signature = request.headers['X-Line-Signature']
     payload = request.get_json()
     log(payload)
 
     # get request body as text
-    # body = request.get_data(as_text=True)
-    # app.logger.info("Request body: " + body)
+    body = request.get_data(as_text=True)
+    app.logger.info("Request body: " + body)
 
     # handle webhook body
     try:
-        # handler.handle(body, signature)
+        handler.handle(body, signature)
+    except InvalidSignatureError:
+        abort(400)
+
+    try:
         events = payload.get("events")[0]
+
+        # send back to Line
+        line_bot_api.reply_message(events.get("replyToken"), TextSendMessage(text=events.get("message").get("text")))
+
+        # data for qismo
         data = json.dumps({
             "replyToken": events.get("replyToken"),
             "messages": [
@@ -104,8 +114,9 @@ def line():
             ]
         })
         send_to_qismo(data, channel="line", qiscus_app_id=payload.get("qiscus_app_id"))
-    except InvalidSignatureError:
-        abort(400)
+
+    except LineBotApiError as e:
+        log(e)
 
     return 'OK'
 
