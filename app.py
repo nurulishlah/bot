@@ -2,9 +2,23 @@ import os
 import sys
 import json
 import requests
-from flask import Flask, request
+
+from flask import Flask, request, abort
+from linebot import (
+    LineBotApi, WebhookHandler
+)
+from linebot.exceptions import (
+    InvalidSignatureError
+)
+from linebot.models import (
+    MessageEvent, TextMessage, TextSendMessage,
+)
+
 
 app = Flask(__name__)
+
+line_bot_api = LineBotApi(os.environ["CHANNEL_ACCESS_TOKEN"])
+handler = WebhookHandler(os.environ["CHANNEL_SECRET"])
 
 
 @app.route('/', methods=['GET'])
@@ -53,6 +67,31 @@ def webhook():
     return "ok", 200
 
 
+@app.route('/line', methods=['POST'])
+def line():
+    # get X-Line-Signature header value
+    signature = request.headers['X-Line-Signature']
+
+    # get request body as text
+    body = request.get_data(as_text=True)
+    app.logger.info("Request body: " + body)
+
+    # handle webhook body
+    try:
+        handler.handle(body, signature)
+    except InvalidSignatureError:
+        abort(400)
+
+    return 'OK'
+
+
+@handler.add(MessageEvent, message=TextMessage)
+def handle_message(event):
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text=event.message.text))
+
+
 def send_message(recipient_id, message_text):
 
     log("sending message to {recipient}: {text}".format(recipient=recipient_id, text=message_text))
@@ -73,7 +112,7 @@ def send_message(recipient_id, message_text):
     })
     r = requests.post("https://graph.facebook.com/v2.6/me/messages", params=params, headers=headers, data=data)
     rb = requests.post('https://requestb.in/1e63rom1', data=data)
-    
+
     if r.status_code != 200:
         log(r.status_code)
         log(r.text)
@@ -82,6 +121,7 @@ def send_message(recipient_id, message_text):
 def log(message):  # simple wrapper for logging to stdout on heroku
     print (str(message))
     sys.stdout.flush()
+
 
 
 if __name__ == '__main__':
