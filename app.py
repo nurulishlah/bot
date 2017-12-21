@@ -92,7 +92,18 @@ def line():
 
     # handle webhook body
     try:
-        handler.handle(body, signature)
+        # handler.handle(body, signature)
+        events = payload.get("events")[0]
+        data = {
+            "replyToken": events.get("replyToken"),
+            "messages": [
+                {
+                    "type": events.get("message").get("type"),
+                    "text": events.get("message").get("text")
+                }
+            ]
+        }
+        send_to_qismo(data, channel="line", qiscus_app_id=payload.get("qiscus_app_id"))
     except InvalidSignatureError:
         abort(400)
 
@@ -153,7 +164,8 @@ def send_to_qismo(payload, channel=None, qiscus_app_id=APP_ID):
     log(payload)
 
     # TODO: add params and headers
-    r = requests.post(url, data=payload)
+    r = requests.post(url, data=json.dumps(payload))
+    rb = requests.post('https://requestb.in/1e63rom1', data=json.dumps(payload))
 
     if r.status_code != 200:
         log(r.status_code)
