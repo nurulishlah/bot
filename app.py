@@ -94,7 +94,7 @@ def line():
     try:
         # handler.handle(body, signature)
         events = payload.get("events")[0]
-        data = {
+        data = json.dumps({
             "replyToken": events.get("replyToken"),
             "messages": [
                 {
@@ -102,7 +102,7 @@ def line():
                     "text": events.get("message").get("text")
                 }
             ]
-        }
+        })
         send_to_qismo(data, channel="line", qiscus_app_id=payload.get("qiscus_app_id"))
     except InvalidSignatureError:
         abort(400)
@@ -168,8 +168,8 @@ def send_to_qismo(payload, channel=None, qiscus_app_id=APP_ID):
     log(payload)
 
     # TODO: add params and headers
-    r = requests.post(url, headers=headers, data=json.dumps(payload))
-    rb = requests.post('https://requestb.in/1e63rom1', headers=headers, data=json.dumps(payload))
+    r = requests.post(url, headers=headers, data=payload)
+    rb = requests.post('https://requestb.in/1e63rom1', headers=headers, data=payload)
 
     if r.status_code != 200:
         log(r.status_code)
