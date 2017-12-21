@@ -83,40 +83,37 @@ handler = WebhookHandler(os.environ["CHANNEL_SECRET"])
 @app.route('/line', methods=['POST'])
 def line():
     # get X-Line-Signature header value
-    signature = request.headers['X-Line-Signature']
+    # signature = request.headers['X-Line-Signature']
     payload = request.get_json()
-    log(payload)
+    # log(payload)
 
     # get request body as text
-    body = request.get_data(as_text=True)
-    app.logger.info("Request body: " + body)
+    # body = request.get_data(as_text=True)
+    # app.logger.info("Request body: " + body)
 
     # handle webhook body
-    try:
-        handler.handle(body, signature)
-    except InvalidSignatureError:
-        abort(400)
+    # try:
+    #     handler.handle(body, signature)
+    # except InvalidSignatureError:
+    #     abort(400)
 
-    try:
-        events = payload.get("events")[0]
+    events = payload.get("events")[0]
+    log(events)
 
-        # send back to Line
-        line_bot_api.reply_message(events.get("replyToken"), TextSendMessage(text=events.get("message").get("text")))
+    # send back to Line
+    # line_bot_api.reply_message(events.get("replyToken"), TextSendMessage(text=events.get("message").get("text")))
 
-        # data for qismo
-        data = json.dumps({
-            "replyToken": events.get("replyToken"),
-            "messages": [
-                {
-                    "type": events.get("message").get("type"),
-                    "text": events.get("message").get("text")
-                }
-            ]
-        })
-        send_to_qismo(data, channel="line", qiscus_app_id=payload.get("qiscus_app_id"))
-
-    except LineBotApiError as e:
-        log(e)
+    # data for qismo
+    data = json.dumps({
+        "replyToken": events.get("replyToken"),
+        "messages": [
+            {
+                "type": events.get("message").get("type"),
+                "text": events.get("message").get("text")
+            }
+        ]
+    })
+    send_to_qismo(data, channel="line", qiscus_app_id=payload.get("qiscus_app_id"))
 
     return 'OK'
 
