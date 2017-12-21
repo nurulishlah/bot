@@ -138,7 +138,7 @@ def handle_message(event):
 
 
 def send_to_qismo(payload, channel=None, qiscus_app_id=APP_ID):
-    base_url = "http://qismo-stag.herokuapp.com/api/v1/webhook"
+    base_url = "http://qismo-stag.herokuapp.com"
 
     if channel == "fb":
         url = "{}/{}/fb/bot".format(base_url, qiscus_app_id)
