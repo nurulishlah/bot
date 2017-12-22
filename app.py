@@ -133,13 +133,13 @@ def qiscus():
     room_id = payload.get("room").get("id")
     message = payload.get("message").get("text")
 
-    data = {
+    data = json.dumps({
         "sender_email": BOT_EMAIL,
         "room_id": room_id,
         "message": message,
         "type": "text",
         "payload": json.dumps(payload) or {}
-    }
+    })
 
     # send to qismo
     req = send_to_qismo(data, channel="qiscus", qiscus_app_id=qiscus_app_id)
